@@ -45,7 +45,8 @@ using namespace ast;
 
 %%
 Program
-    : Funcs { program = $1; }
+    : Funcs                        { program = $1; }
+    | Statements                   { program = $1; }
     ;
 
 Funcs
