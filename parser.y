@@ -45,7 +45,19 @@ using namespace ast;
 
 %%
 Program
-    : Funcs { program = $1; }
+    : GlobalList
+    | Funcs { program = $1; }
+    ;
+
+GlobalList
+    : GlobalList GlobalElem
+    | GlobalElem
+    ;
+
+GlobalElem
+    : Statement
+    | VarDecl
+    | FuncDecl
     ;
 
 Funcs
