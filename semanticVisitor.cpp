@@ -343,3 +343,15 @@ void SemanticVisitor::visit(ast::ArrayAssign &n){
     n.exp->accept(*this);
     if(!compatible(s->type,getType(n.exp.get()))) output::errorMismatch(n.line);
 }
+
+void SemanticVisitor::visit(ast::PrimitiveType &){ }
+
+void SemanticVisitor::visit(ast::ArrayType &){ }
+
+void SemanticVisitor::visit(ast::Funcs &n){
+    for (auto &f : n.funcs) f->accept(*this);
+}
+
+void SemanticVisitor::visit(ast::ExpList &n){
+    for (auto &e : n.exps) e->accept(*this);
+}
