@@ -26,7 +26,7 @@ using namespace ast;
 %token AND OR NOT
 %token T_ID NUM NUM_B T_STRING
 
-%type Program Funcs FuncDecl RetType Formals FormalsList FormalDecl Statements Statement Call Exp ExpList Type
+%type Program Funcs FuncDecl Formals FormalsList FormalDecl Statements Statement Call Exp ExpList Type
 
 %start Program
 
@@ -55,7 +55,7 @@ Funcs
     ;
 
 FuncDecl
-    : RetType T_ID LPAREN Formals RPAREN LBRACE Statements RBRACE
+    : Type T_ID LPAREN Formals RPAREN LBRACE Statements RBRACE
         {
             $$ = std::make_shared<FuncDecl>(
                 std::dynamic_pointer_cast<ID>($2),
@@ -64,11 +64,6 @@ FuncDecl
                 std::dynamic_pointer_cast<Statements>($7)
             );
         }
-    ;
-
-RetType
-    : Type { $$ = $1; }
-    | T_VOID { $$ = std::make_shared<PrimitiveType>(BuiltInType::VOID); }
     ;
 
 Formals

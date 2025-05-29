@@ -145,27 +145,46 @@ void SemanticVisitor::visit(ast::FuncDecl &n) {
 }
 
 void SemanticVisitor::visit(ast::VarDecl &n){
-    if (lookup(n.id->value)) output::errorDef(n.line,n.id->value);
+    if (lookup(n.id->value)) output::errorDef(n.line, n.id->value);
 
-    bool isArr=false; int len=1; ast::BuiltInType elemT;
-    if(auto *p = dynamic_cast<ast::PrimitiveType*>(n.type.get())){
+    bool isArr = false;
+    int  len   = 1;
+    ast::BuiltInType elemT;
+
+    if (auto *p = dynamic_cast<ast::PrimitiveType*>(n.type.get())) {
         elemT = p->type;
-    } else if(auto *a = dynamic_cast<ast::ArrayType*>(n.type.get())){
+    } else if (auto *a = dynamic_cast<ast::ArrayType*>(n.type.get())) {
         isArr = true;
         elemT = a->type;
+
         a->length->accept(*this);
-        if(!isNumeric(getType(a->length.get()))) output::errorMismatch(a->line);
+        if (!isNumeric(getType(a->length.get()))) output::errorMismatch(a->line);
         len = constLen(a->length.get());
-        if(len<=0) output::errorMismatch(a->line);
-    } else output::errorMismatch(n.line);
+        if (len <= 0) output::errorMismatch(a->line);
+    } else {
+        output::errorMismatch(n.line);
+    }
+
+    if (n.init_exp) {
+        if (isArr) output::errorMismatch(n.line);
+
+        n.init_exp->accept(*this);
+
+        if (auto *idExp = dynamic_cast<ast::ID*>(n.init_exp.get())) {
+            Symbol *rhs = lookup(idExp->value);
+            if (rhs && rhs->isArray) output::ErrorInvalidAssignArray(n.line, idExp->value);
+        }
+
+        auto rhsT = getType(n.init_exp.get());
+        if (!compatible(elemT, rhsT)) output::errorMismatch(n.line);
+    }
 
     int off = nextLocalOffset;
     printer.emitVar(n.id->value, elemT, off);
-    insert(n.id->value,{Symbol::VAR,elemT,{},ast::BuiltInType::VOID,off,isArr,len});
+    insert(n.id->value, {Symbol::VAR, elemT, {}, ast::BuiltInType::VOID, off, isArr, len});
     nextLocalOffset += len;
-
-    if(n.init_exp) output::errorMismatch(n.line);
 }
+
 
 
 void SemanticVisitor::visit(ast::Statements &n) {
