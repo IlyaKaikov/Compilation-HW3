@@ -26,7 +26,8 @@ using namespace ast;
 %token AND OR NOT
 %token T_ID NUM NUM_B T_STRING
 
-%type Program Funcs FuncDecl RetType Formals FormalsList FormalDecl Statements Statement Call Exp ExpList Type
+%type Program Funcs VarDecl FuncDecl RetType Formals FormalsList FormalDecl Statements Statement Call Exp ExpList Type
+
 
 %start Program
 
@@ -45,8 +46,8 @@ using namespace ast;
 
 %%
 Program
-    : GlobalList
-    | Funcs { program = $1; }
+    : GlobalList       { program = $1; }
+    | Funcs            { program = $1; }
     ;
 
 GlobalList
@@ -55,8 +56,21 @@ GlobalList
     ;
 
 GlobalElem
-    : Statements
+    : VarDecl
     | FuncDecl
+    ;
+
+VarDecl
+    : Type ID SC
+        { $$ = std::make_shared<ast::VarDecl>(
+                     std::make_shared<ast::ID>($2),
+                     $1,
+                     nullptr);                         }
+    | Type ID ASSIGN Exp SC
+        { $$ = std::make_shared<ast::VarDecl>(
+                     std::make_shared<ast::ID>($2),
+                     $1,
+                     $4);                              }
     ;
 
 Funcs
@@ -171,7 +185,7 @@ Statement
                 nullptr
             );
         }
-    | IF LPAREN Exp RPAREN Statement ELSE Statement
+    | IF LPAREN Exp RPAREN Statement ELSE Statement 
         {
             $$ = std::make_shared<If>(
                 std::dynamic_pointer_cast<Exp>($3),
