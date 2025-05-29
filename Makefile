@@ -6,5 +6,5 @@ all: clean
 	g++ -std=c++17 -o hw3 *.c *.cpp
 clean:
 	rm -f lex.yy.c
-	rm -f parser.tab.*pp
+	rm -f parser.tab.*
 	rm -f hw3
