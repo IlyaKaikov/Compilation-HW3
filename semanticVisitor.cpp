@@ -73,7 +73,7 @@ void SemanticVisitor::finish() {
 static int constLen(ast::Exp *e){
     if(auto *n = dynamic_cast<ast::Num*>(e))   return n->value;
     if(auto *b = dynamic_cast<ast::NumB*>(e))  return b->value;
-    output::errorMismatch(e->line);            // non-constant
+    output::errorMismatch(e->line);
     return 0;
 }
 
@@ -164,7 +164,7 @@ void SemanticVisitor::visit(ast::VarDecl &n){
     insert(n.id->value,{Symbol::VAR,elemT,{},ast::BuiltInType::VOID,off,isArr,len});
     nextLocalOffset += len;
 
-    if(n.init_exp) output::errorMismatch(n.line);    // arrays may not be initialised here
+    if(n.init_exp) output::errorMismatch(n.line);
 }
 
 
@@ -315,7 +315,7 @@ void SemanticVisitor::visit(ast::Call &n){
         for(auto t : s->params) expect.push_back(toString(t));
         output::errorPrototypeMismatch(n.line,n.func_id->value,expect);
     }
-    
+
     for(size_t i=0;i<actual.size();++i)
         if(!compatible(s->params[i],actual[i])) {
             std::vector<std::string> expect;
