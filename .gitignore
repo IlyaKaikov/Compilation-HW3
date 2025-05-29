@@ -1,3 +1,4 @@
 *.zip
 *.pdf
 hw3-tests/
+.vscode/
