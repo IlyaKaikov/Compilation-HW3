@@ -1,4 +1,4 @@
-    #include "output.hpp"
+#include "output.hpp"
 #include <iostream>
 
 namespace output {
