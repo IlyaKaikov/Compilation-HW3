@@ -61,12 +61,12 @@ GlobalElem
     ;
 
 VarDecl
-    : Type ID SC
+    : Type T_ID SC
         { $$ = std::make_shared<ast::VarDecl>(
                      std::make_shared<ast::ID>($2),
                      $1,
                      nullptr);                         }
-    | Type ID ASSIGN Exp SC
+    | Type T_ID ASSIGN Exp SC
         { $$ = std::make_shared<ast::VarDecl>(
                      std::make_shared<ast::ID>($2),
                      $1,
