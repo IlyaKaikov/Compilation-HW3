@@ -55,8 +55,7 @@ GlobalList
     ;
 
 GlobalElem
-    : Statement
-    | VarDecl
+    : Statements
     | FuncDecl
     ;
 
