@@ -150,38 +150,40 @@ void SemanticVisitor::visit(ast::FuncDecl &n) {
     currentFuncRet = ast::BuiltInType::VOID;
 }
 
-void SemanticVisitor::visit(ast::VarDecl &n){
-    if(lookup(n.id->value)) output::errorDef(n.line,n.id->value);
+void SemanticVisitor::visit(ast::VarDecl &n) {
+    if (lookup(n.id->value)) output::errorDef(n.line, n.id->value);
 
-    bool isArr=false; int len=1; ast::BuiltInType elemT;
-    if(auto *p=dynamic_cast<ast::PrimitiveType*>(n.type.get())){
-        elemT=p->type;
-    }else if(auto *a=dynamic_cast<ast::ArrayType*>(n.type.get())){
-        isArr=true; elemT=a->type;
+    bool isArr = false;
+    int  len   = 1;
+    BuiltInType elemT;
+
+    if (auto *p = dynamic_cast<PrimitiveType*>(n.type.get())) {
+        elemT = p->type;
+    } else if (auto *a = dynamic_cast<ArrayType*>(n.type.get())) {
+        isArr = true;
+        elemT = a->type;
         a->length->accept(*this);
-        if(!isNumeric(getType(a->length.get()))) output::errorMismatch(a->line);
-        len=constLen(a->length.get());
-        if(len<=0) output::errorMismatch(a->line);
-    }else output::errorMismatch(n.line);
+        if (!isNumeric(getType(a->length.get()))) output::errorMismatch(a->line);
+        len = constLen(a->length.get());
+        if (len <= 0) output::errorMismatch(a->line);
+    } else output::errorMismatch(n.line);
 
-    if(n.init_exp){
-        if(isArr) output::errorMismatch(n.line);
+    if (n.init_exp) {
+        if (isArr) output::errorMismatch(n.line);
+
         n.init_exp->accept(*this);
-        if(auto *idE=dynamic_cast<ast::ID*>(n.init_exp.get())){
-            Symbol* rhs=lookup(idE->value);
-            if(rhs&&rhs->isArray) output::ErrorInvalidAssignArray(n.line,idE->value);
+
+        if (auto *idRhs = dynamic_cast<ID*>(n.init_exp.get())) {
+            Symbol *sRhs = lookup(idRhs->value);
+            if (sRhs && sRhs->isArray) output::ErrorInvalidAssignArray(n.line, idRhs->value);
         }
-        if(!compatible(elemT,getType(n.init_exp.get()))) output::errorMismatch(n.line);
+        if (!compatible(elemT, getType(n.init_exp.get()))) output::errorMismatch(n.line);
     }
-
-    int off=nextLocalOffset;
-    printer.emitVar(n.id->value,elemT,off);
-    insert(n.id->value,{Symbol::VAR,elemT,{},ast::BuiltInType::VOID,off,isArr,len});
-    nextLocalOffset+=len;
+    int off = nextLocalOffset;
+    printer.emitVar(n.id->value, elemT, off);
+    insert(n.id->value, {Symbol::VAR, elemT, {}, BuiltInType::VOID, off, isArr, len});
+    nextLocalOffset += len;
 }
-
-
-
 
 void SemanticVisitor::visit(ast::Statements &n) {
     for (auto &s : n.statements) s->accept(*this);
@@ -189,21 +191,30 @@ void SemanticVisitor::visit(ast::Statements &n) {
 
 void SemanticVisitor::visit(ast::If &n) {
     n.condition->accept(*this);
-    if (getType(n.condition.get()) != ast::BuiltInType::BOOL)
-        output::errorMismatch(n.line);
+    if (getType(n.condition.get()) != BuiltInType::BOOL) output::errorMismatch(n.line);
+
+    pushScope();
     n.then->accept(*this);
-    if (n.otherwise) n.otherwise->accept(*this);
+    popScope();
+
+    if (n.otherwise) {
+        pushScope();
+        n.otherwise->accept(*this);
+        popScope();
+    }
 }
 
 void SemanticVisitor::visit(ast::While &n) {
     n.condition->accept(*this);
-    if (getType(n.condition.get()) != ast::BuiltInType::BOOL)
-        output::errorMismatch(n.line);
+    if (getType(n.condition.get()) != BuiltInType::BOOL) output::errorMismatch(n.line);
 
     ++loopDepth;
+    pushScope();
     n.body->accept(*this);
+    popScope();
     --loopDepth;
 }
+
 
 void SemanticVisitor::visit(ast::Break &n) {
     if (loopDepth == 0) output::errorUnexpectedBreak(n.line);
