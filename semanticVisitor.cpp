@@ -61,12 +61,6 @@ SemanticVisitor::SemanticVisitor() {
 
     printer.emitFunc("printi", BuiltInType::VOID,{BuiltInType::INT});
     insert("printi",{Symbol::FUNC,BuiltInType::VOID,{BuiltInType::INT},BuiltInType::VOID,0});
-
-    printer.emitFunc("read",BuiltInType::INT,{BuiltInType::INT});
-    insert("read",{Symbol::FUNC,BuiltInType::VOID,{BuiltInType::INT},BuiltInType::INT,0});
-
-    printer.emitFunc("readi",BuiltInType::INT,{BuiltInType::INT});
-    insert("readi",{Symbol::FUNC,BuiltInType::VOID,{BuiltInType::INT},BuiltInType::INT,0});
 }
 
 void SemanticVisitor::finish() {
