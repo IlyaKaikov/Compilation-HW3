@@ -22,7 +22,8 @@ static std::string toString(ast::BuiltInType type) {
 
 void SemanticVisitor::pushScope() {
     scopes.emplace_back();
-    printer.beginScope();
+    if (!scopes.empty())
+        printer.beginScope();
     nextLocalOffset = 0;
 }
 void SemanticVisitor::popScope() {
