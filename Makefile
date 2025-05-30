@@ -8,3 +8,4 @@ clean:
 	rm -f lex.yy.c
 	rm -f parser.tab.*
 	rm -f hw3
+	rm -f *.out
