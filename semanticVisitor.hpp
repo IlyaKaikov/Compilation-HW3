@@ -62,6 +62,7 @@ private:
 
     ast::BuiltInType currentFuncRet = ast::BuiltInType::VOID;
     bool insideLoop = false;
+    bool skipNextStatementsScope = false;
     int nextLocalOffset = 0;
     int loopDepth = 0;
 

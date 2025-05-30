@@ -21,13 +21,14 @@ static std::string toString(ast::BuiltInType type) {
 }
 
 void SemanticVisitor::pushScope() {
+    bool shouldPrint = !scopes.empty();
     scopes.emplace_back();
-    if (!scopes.empty())
+    if (shouldPrint)
         printer.beginScope();
-    nextLocalOffset = 0;
 }
 void SemanticVisitor::popScope() {
-    printer.endScope();
+    if (scopes.size() > 1)
+        printer.endScope();
     scopes.pop_back();
 }
 bool SemanticVisitor::insert(const std::string& id,const Symbol& s){
@@ -121,14 +122,19 @@ void SemanticVisitor::visit(ast::FuncDecl &n) {
         paramT.push_back(getBuiltin(f->type.get()));
     }
 
-    if (lookup(n.id->value)) { output::errorDef(n.line, n.id->value); }
-
-    printer.emitFunc(n.id->value, retT, paramT);
-    insert(n.id->value, {Symbol::FUNC, ast::BuiltInType::VOID, paramT, retT, 0});
+    Symbol *decl = lookup(n.id->value);
+    if (!decl) {
+        printer.emitFunc(n.id->value,  retT, paramT);
+        insert(n.id->value,{Symbol::FUNC, BuiltInType::VOID, paramT, retT, 0});
+    } 
+    else {
+        if (decl->kind != Symbol::FUNC)
+            output::errorDefAsVar(n.line, n.id->value);
+    }
 
     currentFuncRet = retT;
     pushScope();
-
+    nextLocalOffset = 0;
     int off = -1;
     for (auto &f : n.formals->formals) {
         std::string name = f->id->value;
@@ -138,9 +144,8 @@ void SemanticVisitor::visit(ast::FuncDecl &n) {
         insert(name, {Symbol::VAR, t, {}, ast::BuiltInType::VOID, off});
         --off;
     }
-
+    skipNextStatementsScope = true;
     n.body->accept(*this);
-
     popScope();
     currentFuncRet = ast::BuiltInType::VOID;
 }
@@ -181,7 +186,14 @@ void SemanticVisitor::visit(ast::VarDecl &n) {
 }
 
 void SemanticVisitor::visit(ast::Statements &n) {
+    if (skipNextStatementsScope) {
+        skipNextStatementsScope = false;
+        for (auto &s : n.statements) s->accept(*this);
+        return;
+    }
+    pushScope();
     for (auto &s : n.statements) s->accept(*this);
+    popScope();
 }
 
 void SemanticVisitor::visit(ast::If &n) {
@@ -370,7 +382,26 @@ void SemanticVisitor::visit(ast::PrimitiveType &){ }
 void SemanticVisitor::visit(ast::ArrayType &){ }
 
 void SemanticVisitor::visit(ast::Funcs &n){
-    for (auto &f : n.funcs) f->accept(*this);
+    for (auto &f : n.funcs) {
+        BuiltInType ret = getBuiltin(f->return_type.get());
+        if (dynamic_cast<ast::ArrayType*>(f->return_type.get()))
+            output::errorMismatch(f->line);
+
+        std::vector<BuiltInType> params;
+        for (auto &formal : f->formals->formals) {
+            if (dynamic_cast<ast::ArrayType*>(formal->type.get()))
+                output::errorMismatch(formal->line);
+            params.push_back(getBuiltin(formal->type.get()));
+        }
+
+        if (lookup(f->id->value))
+            output::errorDef(f->line, f->id->value);
+
+        printer.emitFunc(f->id->value, ret, params);
+        insert(f->id->value,{Symbol::FUNC, BuiltInType::VOID, params, ret, 0});
+    }
+    for (auto &f : n.funcs)
+        f->accept(*this);
 }
 
 void SemanticVisitor::visit(ast::ExpList &n){
