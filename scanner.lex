@@ -54,7 +54,7 @@ continue                            return CONTINUE;
 [<]                                 return T_LT;
 {letter}{digitletter}*              { yylval = make_shared<ast::ID>(yytext);  return T_ID; }
 0|([1-9]+{digit}*)                  { yylval = make_shared<ast::Num>(yytext);  return NUM; }
-(0|([1-9]+{digit}*))*b              { yylval = make_shared<ast::NumB>(yytext); return NUM_B; }
+(0|([1-9]+{digit}*))b               { yylval = make_shared<ast::NumB>(yytext); return NUM_B; }
 \"([^\n\r\"\\]|\\[rnt"\\])+\"       { yylval = make_shared<ast::String>(yytext); return T_STRING; }
 \/\/[^\n\r]*[\r|\n|\r\n]?           ;
 {whitespace}                        ;
