@@ -66,9 +66,12 @@ SemanticVisitor::SemanticVisitor() {
 }
 
 void SemanticVisitor::finish() {
-    if(lookup("main")==nullptr ||
-       lookup("main")->ret!=BuiltInType::VOID)
+    Symbol* mainSym = lookup("main");
+    if (mainSym == nullptr || mainSym->kind != Symbol::FUNC
+        || mainSym->ret  != BuiltInType::VOID
+        || !mainSym->params.empty()) {
         output::errorMainMissing();
+    }
     std::cout << printer;
 }
 
@@ -129,7 +132,7 @@ void SemanticVisitor::visit(ast::FuncDecl &n) {
     } 
     else {
         if (decl->kind != Symbol::FUNC)
-            output::errorDefAsVar(n.line, n.id->value);
+            output::errorDefAsVar(n.id->line, n.id->value);
     }
 
     currentFuncRet = retT;
@@ -198,7 +201,8 @@ void SemanticVisitor::visit(ast::Statements &n) {
 
 void SemanticVisitor::visit(ast::If &n) {
     n.condition->accept(*this);
-    if (getType(n.condition.get()) != BuiltInType::BOOL) output::errorMismatch(n.line);
+    if (getType(n.condition.get()) != BuiltInType::BOOL)
+        output::errorMismatch(n.condition->line);
 
     pushScope();
     n.then->accept(*this);
@@ -213,7 +217,8 @@ void SemanticVisitor::visit(ast::If &n) {
 
 void SemanticVisitor::visit(ast::While &n) {
     n.condition->accept(*this);
-    if (getType(n.condition.get()) != BuiltInType::BOOL) output::errorMismatch(n.line);
+    if (getType(n.condition.get()) != BuiltInType::BOOL)
+        output::errorMismatch(n.condition->line);
 
     ++loopDepth;
     pushScope();
@@ -395,7 +400,7 @@ void SemanticVisitor::visit(ast::Funcs &n){
         }
 
         if (lookup(f->id->value))
-            output::errorDef(f->line, f->id->value);
+            output::errorDef(f->id->line, f->id->value);
 
         printer.emitFunc(f->id->value, ret, params);
         insert(f->id->value,{Symbol::FUNC, BuiltInType::VOID, params, ret, 0});
