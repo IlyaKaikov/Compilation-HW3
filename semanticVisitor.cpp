@@ -182,8 +182,13 @@ void SemanticVisitor::visit(ast::VarDecl &n) {
         }
         if (!compatible(elemT, getType(n.init_exp.get()))) output::errorMismatch(n.line);
     }
+    
     int off = nextLocalOffset;
-    printer.emitVar(n.id->value, elemT, off);
+    if (isArr)
+        printer.emitArr(n.id->value, elemT, len, off);
+    else 
+        printer.emitVar(n.id->value, elemT, off);
+
     insert(n.id->value, {Symbol::VAR, elemT, {}, BuiltInType::VOID, off, isArr, len});
     nextLocalOffset += len;
 }
