@@ -1,8 +1,8 @@
 #!/bin/bash 
 # change these per each homework 
 #	link to tests:
-testsurl="https://github.com/Whitomtit/HW3_tests"
-makefileurl="https://github.com/Whitomtit/HW3_makefile"
+testsurl="https://github.com/avigailyam/compi_HW3_selfcheck_tests"
+makefileurl="https://github.com/avigailyam/compi_HW3_selfcheck_makefile"
 
 hostname="cscomp"
 tmpdir="selfcheck_tmp"
@@ -49,35 +49,35 @@ if [ ! -f scanner.lex ]
 	exit
 fi
 
-if [ ! -f parser.ypp ] 
+if [ ! -f parser.y ] 
 	then
-	echo "File parser.ypp not found!"
+	echo "File parser.y not found!"
 	exit
 fi
 
-if [ ! -f hw3_output.cpp ] 
+if [ ! -f output.cpp ] 
 	then
-	echo "File hw3_output.cpp not found!"
+	echo "File output.cpp not found!"
 	exit
 fi
 
-if [ ! -f hw3_output.hpp ] 
+if [ ! -f output.hpp ] 
 	then
-	echo "File hw3_output.hpp not found!"
+	echo "File output.hpp not found!"
 	exit
 fi
 
 git clone "$makefileurl" &> /dev/null
-if [ ! -d HW3_makefile ]
+if [ ! -d compi_HW3_selfcheck_makefile ]
 	then
 		echo "Unable to download makefile!"
 		exit
 fi
-cd HW3_makefile
+cd compi_HW3_selfcheck_makefile
 mv * ../
 cd ..
 
-make -f Makefile-hw3
+make -f Makefile
 
 if [ ! -f hw3 ] 
 	then 
@@ -86,17 +86,17 @@ if [ ! -f hw3 ]
 fi 
 
 git clone "$testsurl" &> /dev/null
-if [ ! -d HW3_tests ]
+if [ ! -d compi_HW3_selfcheck_tests ]
 	then
 		echo "Unable to download tests!"
 		exit
 fi
-cd HW3_tests
+cd compi_HW3_selfcheck_tests
 mv * ../
 cd ..
 
 #	number of tests: 
-numtests=2 
+numtests=3 
 #	command to execute test: 
 command="./hw3 < t\$i.in >& t\$i.res"
 i="1" 

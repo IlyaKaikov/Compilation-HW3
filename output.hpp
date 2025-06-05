@@ -58,6 +58,8 @@ namespace output {
 
         void emitVar(const std::string &id, const ast::BuiltInType &type, int offset);
 
+        void emitArr(const std::string &id, const ast::BuiltInType &type, int length , int offset );
+
         void emitFunc(const std::string &id, const ast::BuiltInType &returnType,
                       const std::vector<ast::BuiltInType> &paramTypes);
 

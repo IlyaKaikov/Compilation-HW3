@@ -97,7 +97,7 @@ namespace output {
     }
 
     void ErrorInvalidAssignArray(int lineno, const std::string &id_arr) {
-        std::cout << "line " << lineno << ": invalid assignment to/from array " << id_arr << std::endl;
+        std::cout << "line " << lineno << ": invalid assignment to array " << id_arr << std::endl;
         exit(0);
     }
 
@@ -127,6 +127,10 @@ namespace output {
         buffer << indent() << id << " " << toString(type) << " " << offset << std::endl;
     }
 
+    void ScopePrinter::emitArr(const std::string &id, const ast::BuiltInType &type, int length , int offset ) {
+        buffer << indent() << id << "[" << length << "]" << " " << toString(type) << " " << offset <<  std::endl;
+    }
+
     void ScopePrinter::emitFunc(const std::string &id, const ast::BuiltInType &returnType,
                                 const std::vector<ast::BuiltInType> &paramTypes) {
         globalsBuffer << id << " " << "(";
@@ -147,6 +151,4 @@ namespace output {
         os << "---end global scope---" << std::endl;
         return os;
     }
-
-
 }
