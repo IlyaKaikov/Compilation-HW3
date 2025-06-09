@@ -3,6 +3,7 @@
 using namespace ast;
 using output::ScopePrinter;
 
+// same toString func as in output.cpp
 static std::string toString(ast::BuiltInType type) {
     switch (type) {
         case ast::BuiltInType::INT:
@@ -26,78 +27,97 @@ void SemanticVisitor::pushScope() {
     if (shouldPrint)
         printer.beginScope();
 }
+
 void SemanticVisitor::popScope() {
     if (scopes.size() > 1)
         printer.endScope();
+
     scopes.pop_back();
 }
-bool SemanticVisitor::insert(const std::string& id,const Symbol& s){
+
+bool SemanticVisitor::insert(const std::string& id,const Symbol& s) {
     auto& tbl = scopes.back();
-    if(tbl.count(id)) return false;
+    if (tbl.count(id)) 
+        return false;
+
     tbl[id]=s;
     return true;
 }
-Symbol* SemanticVisitor::lookup(const std::string& id){
-    for(int i=scopes.size()-1;i>=0;--i){
+
+Symbol* SemanticVisitor::lookup(const std::string& id) {
+    for (int i = scopes.size() -1; i >= 0; --i) {
         auto it = scopes[i].find(id);
-        if(it!=scopes[i].end()) return &it->second;
+        if(it != scopes[i].end()) 
+            return &it->second;
     }
     return nullptr;
 }
 
-void SemanticVisitor::setType(const ast::Node* n, ast::BuiltInType t){
+void SemanticVisitor::setType(const ast::Node* n, ast::BuiltInType t) {
     exprType[n]=t;
 }
 
-ast::BuiltInType SemanticVisitor::getType(const ast::Node* n) const{
+ast::BuiltInType SemanticVisitor::getType(const ast::Node* n) const {
     auto it = exprType.find(n);
-    return it==exprType.end()? ast::BuiltInType::VOID : it->second;
+    return it == exprType.end() ? ast::BuiltInType::VOID : it->second;
 }
 
 
 SemanticVisitor::SemanticVisitor() {
     pushScope();
 
-    printer.emitFunc("print",  BuiltInType::VOID,{BuiltInType::STRING});
-    insert("print",{Symbol::FUNC,BuiltInType::VOID,{BuiltInType::STRING},BuiltInType::VOID,0});
+    printer.emitFunc("print",  BuiltInType::VOID, {BuiltInType::STRING});
+    insert("print", {Symbol::FUNC, BuiltInType::VOID, {BuiltInType::STRING}, BuiltInType::VOID,0});
 
-    printer.emitFunc("printi", BuiltInType::VOID,{BuiltInType::INT});
-    insert("printi",{Symbol::FUNC,BuiltInType::VOID,{BuiltInType::INT},BuiltInType::VOID,0});
+    printer.emitFunc("printi", BuiltInType::VOID, {BuiltInType::INT});
+    insert("printi", {Symbol::FUNC, BuiltInType::VOID, {BuiltInType::INT}, BuiltInType::VOID,0});
 }
 
 void SemanticVisitor::finish() {
     Symbol* mainSym = lookup("main");
-    if (mainSym == nullptr || mainSym->kind != Symbol::FUNC
-        || mainSym->ret  != BuiltInType::VOID
-        || !mainSym->params.empty()) {
+    if (mainSym == nullptr || mainSym->kind != Symbol::FUNC || mainSym->ret  != BuiltInType::VOID || !mainSym->params.empty())
         output::errorMainMissing();
-    }
+
     std::cout << printer;
 }
 
-static int constLen(ast::Exp *e){
-    if(auto *n = dynamic_cast<ast::Num*>(e))   return n->value;
-    if(auto *b = dynamic_cast<ast::NumB*>(e))  return b->value;
+// start of helper funcs
+
+static int constLen(ast::Exp *e) {
+    if (auto *n = dynamic_cast<ast::Num*>(e))
+        return n->value;
+
+    if (auto *b = dynamic_cast<ast::NumB*>(e))
+        return b->value;
+
     output::errorMismatch(e->line);
     return 0;
 }
 
 static bool compatible(ast::BuiltInType expected, ast::BuiltInType actual) {
-    if (expected == actual) return true;
+    if (expected == actual) 
+        return true;
+
     return expected == ast::BuiltInType::INT && actual == ast::BuiltInType::BYTE;
 }
 
 static ast::BuiltInType getBuiltin(ast::Type *t) {
-    if (auto *p = dynamic_cast<ast::PrimitiveType*>(t)) return p->type;
+    if (auto *p = dynamic_cast<ast::PrimitiveType*>(t)) 
+        return p->type;
+
     output::errorMismatch(t->line);
     return ast::BuiltInType::VOID;
 }
 
-static bool isNumeric(ast::BuiltInType t){
-    return t==ast::BuiltInType::INT || t==ast::BuiltInType::BYTE;
+static bool isNumeric(ast::BuiltInType t) {
+    return t == ast::BuiltInType::INT || t == ast::BuiltInType::BYTE;
 }
 
-static bool isBool(ast::BuiltInType t){ return t==ast::BuiltInType::BOOL; }
+static bool isBool(ast::BuiltInType t) { 
+    return t==ast::BuiltInType::BOOL; 
+}
+
+// end of helper funcs
 
 void SemanticVisitor::visit(ast::Bool &n) {
     setType(&n, ast::BuiltInType::BOOL);
@@ -105,8 +125,12 @@ void SemanticVisitor::visit(ast::Bool &n) {
 
 void SemanticVisitor::visit(ast::ID &n) {
     Symbol* s = lookup(n.value);
-    if(!s) { output::errorUndef(n.line,n.value); }
-    if(s->kind==Symbol::FUNC) { output::errorDefAsVar(n.line,n.value); }
+    if (!s) 
+        output::errorUndef(n.line,n.value);
+
+    if (s->kind==Symbol::FUNC) 
+        output::errorDefAsVar(n.line,n.value);
+
     setType(&n, s->isArray ? ast::BuiltInType::VOID : s->type);
 }
 
@@ -118,10 +142,14 @@ void SemanticVisitor::visit(ast::Formals &n) {
 
 void SemanticVisitor::visit(ast::FuncDecl &n) {
     ast::BuiltInType retT = getBuiltin(n.return_type.get());
-    if(dynamic_cast<ast::ArrayType*>(n.return_type.get())) output::errorMismatch(n.line);
+    if (dynamic_cast<ast::ArrayType*>(n.return_type.get())) 
+        output::errorMismatch(n.line);
+
     std::vector<ast::BuiltInType> paramT;
-    for (auto &f : n.formals->formals){ 
-        if(dynamic_cast<ast::ArrayType*>(f->type.get())) output::errorMismatch(f->line);
+    for (auto &f : n.formals->formals) { 
+        if (dynamic_cast<ast::ArrayType*>(f->type.get())) 
+            output::errorMismatch(f->line);
+
         paramT.push_back(getBuiltin(f->type.get()));
     }
 
@@ -141,7 +169,9 @@ void SemanticVisitor::visit(ast::FuncDecl &n) {
     int off = -1;
     for (auto &f : n.formals->formals) {
         std::string name = f->id->value;
-        if (lookup(name)) { output::errorDef(f->line, name); }
+        if (lookup(name)) 
+            output::errorDef(f->line, name);
+
         ast::BuiltInType t = getBuiltin(f->type.get());
         printer.emitVar(name, t, off);
         insert(name, {Symbol::VAR, t, {}, ast::BuiltInType::VOID, off});
@@ -162,25 +192,34 @@ void SemanticVisitor::visit(ast::VarDecl &n) {
 
     if (auto *p = dynamic_cast<PrimitiveType*>(n.type.get())) {
         elemT = p->type;
-    } else if (auto *a = dynamic_cast<ArrayType*>(n.type.get())) {
+    } 
+    else if (auto *a = dynamic_cast<ArrayType*>(n.type.get())) {
         isArr = true;
         elemT = a->type;
         a->length->accept(*this);
-        if (!isNumeric(getType(a->length.get()))) output::errorMismatch(a->line);
+        if (!isNumeric(getType(a->length.get()))) 
+            output::errorMismatch(a->line);
+
         len = constLen(a->length.get());
-        if (len <= 0) output::errorMismatch(a->line);
-    } else output::errorMismatch(n.line);
+        if (len <= 0) 
+            output::errorMismatch(a->line);
+
+    } 
+    else 
+        output::errorMismatch(n.line);
 
     if (n.init_exp) {
-        if (isArr) output::errorMismatch(n.line);
+        if (isArr) 
+            output::errorMismatch(n.line);
 
         n.init_exp->accept(*this);
-
         if (auto *idRhs = dynamic_cast<ID*>(n.init_exp.get())) {
             Symbol *sRhs = lookup(idRhs->value);
-            if (sRhs && sRhs->isArray) output::ErrorInvalidAssignArray(n.line, idRhs->value);
+            if (sRhs && sRhs->isArray) 
+                output::ErrorInvalidAssignArray(n.line, idRhs->value);
         }
-        if (!compatible(elemT, getType(n.init_exp.get()))) output::errorMismatch(n.line);
+        if (!compatible(elemT, getType(n.init_exp.get()))) 
+            output::errorMismatch(n.line);
     }
     
     int off = nextLocalOffset;
@@ -196,11 +235,15 @@ void SemanticVisitor::visit(ast::VarDecl &n) {
 void SemanticVisitor::visit(ast::Statements &n) {
     if (skipNextStatementsScope) {
         skipNextStatementsScope = false;
-        for (auto &s : n.statements) s->accept(*this);
+        for (auto &s : n.statements) {
+            s->accept(*this);
+        }
         return;
     }
     pushScope();
-    for (auto &s : n.statements) s->accept(*this);
+    for (auto &s : n.statements) {
+        s->accept(*this);
+    }
     popScope();
 }
 
@@ -212,7 +255,6 @@ void SemanticVisitor::visit(ast::If &n) {
     pushScope();
     n.then->accept(*this);
     popScope();
-
     if (n.otherwise) {
         pushScope();
         n.otherwise->accept(*this);
@@ -234,19 +276,23 @@ void SemanticVisitor::visit(ast::While &n) {
 
 
 void SemanticVisitor::visit(ast::Break &n) {
-    if (loopDepth == 0) output::errorUnexpectedBreak(n.line);
+    if (loopDepth == 0) 
+        output::errorUnexpectedBreak(n.line);
 }
 
 void SemanticVisitor::visit(ast::Continue &n) {
-    if (loopDepth == 0) output::errorUnexpectedContinue(n.line);
+    if (loopDepth == 0) 
+        output::errorUnexpectedContinue(n.line);
 }
 
 void SemanticVisitor::visit(ast::Return &n) {
     if (currentFuncRet == ast::BuiltInType::VOID) {
-        if (n.exp) output::errorMismatch(n.line);
+        if (n.exp) 
+            output::errorMismatch(n.line);
         return;
     }
-    if (!n.exp) output::errorMismatch(n.line);
+    if (!n.exp)
+        output::errorMismatch(n.line);
 
     n.exp->accept(*this);
     auto t = getType(n.exp.get());
@@ -254,144 +300,168 @@ void SemanticVisitor::visit(ast::Return &n) {
         output::errorMismatch(n.line);
 }
 
-void SemanticVisitor::visit(ast::Num &n){
+void SemanticVisitor::visit(ast::Num &n) {
     setType(&n, ast::BuiltInType::INT);
 }
 
-void SemanticVisitor::visit(ast::NumB &n){
-    if(n.value>255) output::errorByteTooLarge(n.line,n.value);
+void SemanticVisitor::visit(ast::NumB &n) {
+    if (n.value>255) output::errorByteTooLarge(n.line,n.value);
     setType(&n, ast::BuiltInType::BYTE);
 }
 
-void SemanticVisitor::visit(ast::String &n){
+void SemanticVisitor::visit(ast::String &n) {
     setType(&n, ast::BuiltInType::STRING);
 }
 
-void SemanticVisitor::visit(ast::BinOp &n){
+void SemanticVisitor::visit(ast::BinOp &n) {
     n.left->accept(*this);
     n.right->accept(*this);
     auto lt=getType(n.left.get()), rt=getType(n.right.get());
-    if(!isNumeric(lt)||!isNumeric(rt)) output::errorMismatch(n.line);
-    setType(&n, (lt==ast::BuiltInType::INT||rt==ast::BuiltInType::INT)
-                   ? ast::BuiltInType::INT : ast::BuiltInType::BYTE);
+    if (!isNumeric(lt) || !isNumeric(rt)) 
+        output::errorMismatch(n.line);
+
+    setType(&n, (lt == ast::BuiltInType::INT || rt==ast::BuiltInType::INT) ? ast::BuiltInType::INT : ast::BuiltInType::BYTE);
 }
 
-void SemanticVisitor::visit(ast::RelOp &n){
+void SemanticVisitor::visit(ast::RelOp &n) {
     n.left->accept(*this);
     n.right->accept(*this);
     auto lt=getType(n.left.get()), rt=getType(n.right.get());
-    if(!isNumeric(lt)||!isNumeric(rt)) output::errorMismatch(n.line);
+    if (!isNumeric(lt)||!isNumeric(rt)) 
+        output::errorMismatch(n.line);
+
     setType(&n, ast::BuiltInType::BOOL);
 }
 
-void SemanticVisitor::visit(ast::Not &n){
+void SemanticVisitor::visit(ast::Not &n) {
     n.exp->accept(*this);
-    if(!isBool(getType(n.exp.get()))) output::errorMismatch(n.line);
+    if (!isBool(getType(n.exp.get()))) 
+        output::errorMismatch(n.line);
+
     setType(&n, ast::BuiltInType::BOOL);
 }
 
-void SemanticVisitor::visit(ast::And &n){
+void SemanticVisitor::visit(ast::And &n) {
     n.left->accept(*this);
     n.right->accept(*this);
-    if(!isBool(getType(n.left.get()))||!isBool(getType(n.right.get())))
+    if (!isBool(getType(n.left.get()))||!isBool(getType(n.right.get())))
+        output::errorMismatch(n.line);
+
+    setType(&n, ast::BuiltInType::BOOL);
+}
+
+void SemanticVisitor::visit(ast::Or &n) {
+    n.left->accept(*this);
+    n.right->accept(*this);
+    if (!isBool(getType(n.left.get())) || !isBool(getType(n.right.get())))
         output::errorMismatch(n.line);
     setType(&n, ast::BuiltInType::BOOL);
 }
 
-void SemanticVisitor::visit(ast::Or &n){
-    n.left->accept(*this);
-    n.right->accept(*this);
-    if(!isBool(getType(n.left.get()))||!isBool(getType(n.right.get())))
-        output::errorMismatch(n.line);
-    setType(&n, ast::BuiltInType::BOOL);
-}
-
-void SemanticVisitor::visit(ast::Assign &n){
+void SemanticVisitor::visit(ast::Assign &n) {
     Symbol* s = lookup(n.id->value);
-    if(!s || s->kind==Symbol::FUNC) output::errorUndef(n.line,n.id->value);
-    if(s->isArray) output::ErrorInvalidAssignArray(n.line,n.id->value);
+    if (!s || s->kind==Symbol::FUNC) output::errorUndef(n.line,n.id->value);
+    if (s->isArray) output::ErrorInvalidAssignArray(n.line,n.id->value);
     n.exp->accept(*this);
 
-    if(auto *idExp = dynamic_cast<ast::ID*>(n.exp.get())){
+    if (auto *idExp = dynamic_cast<ast::ID*>(n.exp.get())) {
         Symbol* rhs = lookup(idExp->value);
-        if(rhs && rhs->isArray) output::ErrorInvalidAssignArray(n.line,idExp->value);
+        if (rhs && rhs->isArray) output::ErrorInvalidAssignArray(n.line,idExp->value);
     }
 
     auto rhs = getType(n.exp.get());
-    if(!compatible(s->type,rhs)) output::errorMismatch(n.line);
+    if (!compatible(s->type,rhs)) output::errorMismatch(n.line);
     setType(&n,s->type);
 }
 
-void SemanticVisitor::visit(ast::Cast &n){
+void SemanticVisitor::visit(ast::Cast &n) {
     n.exp->accept(*this);
     auto src = getType(n.exp.get());
     ast::BuiltInType dst = getBuiltin(n.target_type.get());
     bool ok = false;
-    if(dst==ast::BuiltInType::INT)  ok = isNumeric(src);
-    if(dst==ast::BuiltInType::BYTE) ok = isNumeric(src);
-    if(dst==ast::BuiltInType::BOOL) ok = isBool(src);
-    if(!ok) output::errorMismatch(n.line);
+    if (dst==ast::BuiltInType::INT)
+        ok = isNumeric(src);
+    if (dst==ast::BuiltInType::BYTE)
+        ok = isNumeric(src);
+    if (dst==ast::BuiltInType::BOOL)
+        ok = isBool(src);
+    if (!ok)
+        output::errorMismatch(n.line);
+
     setType(&n,dst);
 }
 
-void SemanticVisitor::visit(ast::Call &n){
+void SemanticVisitor::visit(ast::Call &n) {
     Symbol* s = lookup(n.func_id->value);
-    if(!s || s->kind==Symbol::VAR) output::errorUndefFunc(n.line,n.func_id->value);
+    if (!s || s->kind==Symbol::VAR) 
+        output::errorUndefFunc(n.line,n.func_id->value);
 
     std::vector<ast::BuiltInType> actual;
-    for(auto &arg : n.args->exps){
+    for (auto &arg : n.args->exps){
         arg->accept(*this);
-
-        if(auto *idA = dynamic_cast<ast::ID*>(arg.get())){
+        if (auto *idA = dynamic_cast<ast::ID*>(arg.get())) {
             Symbol* aSym = lookup(idA->value);
-            if(aSym && aSym->isArray){
+            if (aSym && aSym->isArray){
                 std::vector<std::string> expect;
-                for(auto t:s->params) expect.push_back(toString(t));
+                for (auto t:s->params) {
+                    expect.push_back(toString(t));
+                }
                 output::errorPrototypeMismatch(n.line,n.func_id->value,expect);
             }
         }
         actual.push_back(getType(arg.get()));
     }
 
-    if(actual.size()!=s->params.size()) {
+    if (actual.size()!=s->params.size()) {
         std::vector<std::string> expect;
-        for(auto t : s->params) expect.push_back(toString(t));
+        for (auto t : s->params) {
+            expect.push_back(toString(t));
+        }
         output::errorPrototypeMismatch(n.line,n.func_id->value,expect);
     }
 
-    for(size_t i=0;i<actual.size();++i)
-        if(!compatible(s->params[i],actual[i])) {
+    for (size_t i=0;i<actual.size();++i)
+        if (!compatible(s->params[i],actual[i])) {
             std::vector<std::string> expect;
-            for(auto t : s->params) expect.push_back(toString(t));
+            for (auto t : s->params) {
+                expect.push_back(toString(t));
+            }
             output::errorPrototypeMismatch(n.line,n.func_id->value,expect);
         }
     setType(&n,s->ret);
 }
 
-void SemanticVisitor::visit(ast::ArrayDereference &n){
+void SemanticVisitor::visit(ast::ArrayDereference &n) {
     Symbol* s = lookup(n.id->value);
-    if(!s || s->kind==Symbol::FUNC || !s->isArray) output::errorUndef(n.line,n.id->value);
+    if (!s || s->kind==Symbol::FUNC || !s->isArray) 
+        output::errorUndef(n.line,n.id->value);
+
     n.index->accept(*this);
-    if(!isNumeric(getType(n.index.get()))) output::errorMismatch(n.line);
+    if (!isNumeric(getType(n.index.get()))) 
+        output::errorMismatch(n.line);
+
     setType(&n, s->type);
 }
 
-void SemanticVisitor::visit(ast::ArrayAssign &n){
+void SemanticVisitor::visit(ast::ArrayAssign &n) {
     Symbol* s = lookup(n.id->value);
-    if(!s || s->kind==Symbol::FUNC || !s->isArray) output::errorUndef(n.line,n.id->value);
+    if (!s || s->kind==Symbol::FUNC || !s->isArray) 
+        output::errorUndef(n.line,n.id->value);
 
     n.index->accept(*this);
-    if(!isNumeric(getType(n.index.get()))) output::errorMismatch(n.line);
+    if (!isNumeric(getType(n.index.get()))) 
+        output::errorMismatch(n.line);
 
     n.exp->accept(*this);
-    if(!compatible(s->type,getType(n.exp.get()))) output::errorMismatch(n.line);
+    if (!compatible(s->type,getType(n.exp.get()))) 
+        output::errorMismatch(n.line);
 }
 
-void SemanticVisitor::visit(ast::PrimitiveType &){ }
+void SemanticVisitor::visit(ast::PrimitiveType &) {}
 
-void SemanticVisitor::visit(ast::ArrayType &){ }
+void SemanticVisitor::visit(ast::ArrayType &) {}
 
-void SemanticVisitor::visit(ast::Funcs &n){
+void SemanticVisitor::visit(ast::Funcs &n) {
     for (auto &f : n.funcs) {
         BuiltInType ret = getBuiltin(f->return_type.get());
         if (dynamic_cast<ast::ArrayType*>(f->return_type.get()))
@@ -410,10 +480,14 @@ void SemanticVisitor::visit(ast::Funcs &n){
         printer.emitFunc(f->id->value, ret, params);
         insert(f->id->value,{Symbol::FUNC, BuiltInType::VOID, params, ret, 0});
     }
-    for (auto &f : n.funcs)
+
+    for (auto &f : n.funcs) {
         f->accept(*this);
+    }
 }
 
-void SemanticVisitor::visit(ast::ExpList &n){
-    for (auto &e : n.exps) e->accept(*this);
+void SemanticVisitor::visit(ast::ExpList &n) {
+    for (auto &e : n.exps) {
+        e->accept(*this);
+    }
 }

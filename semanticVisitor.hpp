@@ -7,7 +7,8 @@
 #include <unordered_map>
 
 struct Symbol {
-    enum Kind { VAR, FUNC } kind;
+    enum Kind {VAR,FUNC} kind;
+
     ast::BuiltInType type;
     std::vector<ast::BuiltInType> params;
     ast::BuiltInType ret;
@@ -20,6 +21,7 @@ class SemanticVisitor : public Visitor {
 public:
     SemanticVisitor();
     void finish();
+
 
     void visit(ast::Num &n) override;
     void visit(ast::Bool &n) override;
@@ -55,8 +57,9 @@ public:
 
 
 private:
-    using Table = std::unordered_map<std::string,Symbol>;
-    std::unordered_map<const ast::Node*,ast::BuiltInType> exprType;
+    using Table = std::unordered_map<std::string, Symbol>; // This alias is just for my convenience :)
+
+    std::unordered_map<const ast::Node*, ast::BuiltInType> exprType;
     std::vector<Table> scopes;
     output::ScopePrinter printer;
 
@@ -66,13 +69,14 @@ private:
     int nextLocalOffset = 0;
     int loopDepth = 0;
 
+
+
     void pushScope();
     void popScope();
     bool insert(const std::string&, const Symbol&);
     Symbol* lookup(const std::string&);
     void  setType(const ast::Node*, ast::BuiltInType);
     ast::BuiltInType getType(const ast::Node*) const;
-
 };
 
 #endif //SEMANTICVISITOR_HPP
